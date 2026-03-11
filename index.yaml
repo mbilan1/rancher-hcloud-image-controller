@@ -1,0 +1,28 @@
+apiVersion: v1
+entries:
+  hcloud-image-controller:
+  - apiVersion: v2
+    appVersion: 0.1.1
+    created: "2026-03-11T23:34:48.299545846+02:00"
+    description: Kubernetes controller that automatically builds Hetzner Cloud hcloud
+      images (Packer snapshots) when HetznerConfig CRDs use the "golden:*" image convention.
+      Part of the RKE2-on-Hetzner platform (DES-004).
+    digest: 19aea740d26c999dad1fd627aa05c0a9f932784743241654970e6138b8cca23d
+    home: https://github.com/mbilan1/rancher-hcloud-image-controller
+    icon: https://raw.githubusercontent.com/kubernetes/community/master/icons/svg/resources/labeled/c-role.svg
+    keywords:
+    - hetzner
+    - packer
+    - hcloud-image
+    - rke2
+    - rancher
+    maintainers:
+    - name: mbilan1
+    name: hcloud-image-controller
+    sources:
+    - https://github.com/mbilan1/rancher-hcloud-image-controller
+    type: application
+    urls:
+    - https://mbilan1.github.io/rancher-hcloud-image-controller/hcloud-image-controller-0.1.1.tgz
+    version: 0.1.1
+generated: "2026-03-11T23:34:48.292666051+02:00"
