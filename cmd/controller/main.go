@@ -15,6 +15,9 @@ import (
 	"github.com/mbilan1/rancher-hcloud-image-controller/internal/controller"
 )
 
+// Set via -ldflags at build time.
+var version = "dev"
+
 func main() {
 	opts := zap.Options{Development: true}
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
@@ -37,6 +40,7 @@ func main() {
 	}
 
 	setupLog.Info("starting hcloud-image-controller",
+		"version", version,
 		"builderImage", cfg.BuilderImage,
 		"jobNamespace", cfg.JobNamespace,
 		"defaultRKE2Version", cfg.RKE2Version,

@@ -24,7 +24,7 @@ CHART_DIR := chart/hcloud-image-controller
 # ── Go ────────────────────────────────────────────────────────────────────────
 
 build:
-	CGO_ENABLED=0 go build -o bin/$(BINARY) ./cmd/controller
+	CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$(VERSION)" -o bin/$(BINARY) ./cmd/controller
 
 test:
 	go test ./... -v -count=1
@@ -90,7 +90,7 @@ quality-gate: tidy fmt vet test lint-all
 # ── Docker — Controller ──────────────────────────────────────────────────────
 
 docker-build:
-	docker build -t $(CONTROLLER_IMAGE) .
+	docker build --build-arg VERSION=$(VERSION) -t $(CONTROLLER_IMAGE) .
 
 docker-push: docker-build
 	docker push $(CONTROLLER_IMAGE)

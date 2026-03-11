@@ -5,12 +5,14 @@
 
 FROM golang:1.24.0-alpine AS builder
 
+ARG VERSION=dev
+
 WORKDIR /build
 
 COPY go.mod go.sum ./
 COPY cmd/ cmd/
 COPY internal/ internal/
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /hcloud-image-controller ./cmd/controller
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${VERSION}" -o /hcloud-image-controller ./cmd/controller
 
 # ── Runtime ──────────────────────────────────────────────────────────────────
 FROM gcr.io/distroless/static-debian12:nonroot
