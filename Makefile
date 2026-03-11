@@ -5,7 +5,7 @@
 
 BINARY       := hcloud-image-controller
 MODULE       := github.com/mbilan1/rancher-hcloud-image-controller
-VERSION      ?= 0.1.0
+VERSION      ?= 0.1.1
 
 # Container registries
 CONTROLLER_IMAGE ?= ghcr.io/mbilan1/hcloud-image-controller:$(VERSION)

@@ -8,7 +8,7 @@
 controller:
   image:
     repository: ghcr.io/mbilan1/hcloud-image-controller
-    tag: "0.1.0"
+    tag: "0.1.1"
     pullPolicy: IfNotPresent
 
   resources:
@@ -24,7 +24,7 @@ controller:
 builder:
   image:
     repository: ghcr.io/mbilan1/hcloud-image-builder
-    tag: "0.1.0"
+    tag: "0.1.1"
     pullPolicy: IfNotPresent
 
 # ── Defaults for Packer builds ────────────────────────────────────────────────

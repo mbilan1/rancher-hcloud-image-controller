@@ -71,8 +71,8 @@ All values in [`chart/hcloud-image-controller/values.yaml`](chart/hcloud-image-c
 
 | Parameter | Default | Description |
 |---|---|---|
-| `controller.image.tag` | `0.1.0` | Controller image version |
-| `builder.image.tag` | `0.1.0` | Builder (Packer) image version |
+| `controller.image.tag` | `0.1.1` | Controller image version |
+| `builder.image.tag` | `0.1.1` | Builder (Packer) image version |
 | `defaults.rke2Version` | `v1.34.4+rke2r1` | Fallback RKE2 version (cluster version takes priority) |
 | `defaults.location` | `hel1` | Hetzner datacenter for builder server |
 | `defaults.serverType` | `cx23` | Server type for builder server |
