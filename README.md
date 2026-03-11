@@ -3,6 +3,8 @@
 [![Quality Gate](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/quality-gate.yml)
 [![Tests](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/unit-test.yml/badge.svg)](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/unit-test.yml)
 [![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mbilan1/rancher-hcloud-image-controller)](https://goreportcard.com/report/github.com/mbilan1/rancher-hcloud-image-controller)
+[![Go Reference](https://pkg.go.dev/badge/github.com/mbilan1/rancher-hcloud-image-controller.svg)](https://pkg.go.dev/github.com/mbilan1/rancher-hcloud-image-controller)
 [![Rancher](https://img.shields.io/badge/Rancher-%E2%89%A5v2.10-0075A8?logo=rancher&logoColor=white)](https://ranchermanager.docs.rancher.com/)
 [![Hetzner Driver](https://img.shields.io/badge/Hetzner_Driver-v0.9.0-D50C2D)](https://github.com/zsys-studio/rancher-hetzner-cluster-provider)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
