@@ -1,0 +1,51 @@
+# RBAC for the Hcloud Image Controller.
+#
+# DECISION: ClusterRole (not Role) because the controller accesses multiple namespaces:
+#   - fleet-default:      read/patch HetznerConfig + Cluster CRDs
+#   - cattle-global-data: read Cloud Credential Secrets (to extract HCLOUD_TOKEN)
+#   - hcloud-image-system: create/read Jobs + Secrets (builder payloads)
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "hcloud-image-controller.fullname" . }}
+  labels:
+    {{- include "hcloud-image-controller.labels" . | nindent 4 }}
+rules:
+  # Watch and patch HetznerConfig CRDs in fleet-default.
+  - apiGroups: ["rke-machine-config.cattle.io"]
+    resources: ["hetznerconfigs"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+
+  # Read Cluster CRDs to find cloudCredentialSecretName and pause machine pools.
+  - apiGroups: ["provisioning.cattle.io"]
+    resources: ["clusters"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+
+  # Read Cloud Credential Secrets (HCLOUD_TOKEN extraction).
+  # NOTE: "watch" is required by controller-runtime's cache/informer.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+
+  # Create and monitor builder Jobs + credential Secrets.
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
+  # Create temporary credential Secrets for builder Jobs.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "delete"]
+    # NOTE: Cannot restrict to namespace in ClusterRole rules.
+    # The controller code limits Secret creation to hcloud-image-system namespace.
+
+  # Leader election requires leases.
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Leader election requires events for recording.
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]

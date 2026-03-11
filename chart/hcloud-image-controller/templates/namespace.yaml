@@ -1,0 +1,8 @@
+{{- if .Values.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "hcloud-image-controller.namespace" . }}
+  labels:
+    {{- include "hcloud-image-controller.labels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hcloud-image-controller.fullname" . }}
+  namespace: {{ include "hcloud-image-controller.namespace" . }}
+  labels:
+    {{- include "hcloud-image-controller.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "hcloud-image-controller.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hcloud-image-controller.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "hcloud-image-controller.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: controller
+          image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}"
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          env:
+            - name: BUILDER_IMAGE
+              value: {{ include "hcloud-image-controller.builderImage" . | quote }}
+            - name: JOB_NAMESPACE
+              value: {{ include "hcloud-image-controller.namespace" . | quote }}
+            - name: DEFAULT_RKE2_VERSION
+              value: {{ .Values.defaults.rke2Version | quote }}
+            {{- if .Values.defaults.location }}
+            - name: DEFAULT_LOCATION
+              value: {{ .Values.defaults.location | quote }}
+            {{- end }}
+            {{- if .Values.defaults.serverType }}
+            - name: DEFAULT_SERVER_TYPE
+              value: {{ .Values.defaults.serverType | quote }}
+            {{- end }}
+            {{- if .Values.defaults.baseImage }}
+            - name: DEFAULT_BASE_IMAGE
+              value: {{ .Values.defaults.baseImage | quote }}
+            {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}

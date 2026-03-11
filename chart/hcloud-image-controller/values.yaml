@@ -1,0 +1,56 @@
+# Hcloud Image Controller — Helm values
+#
+# This controller watches HetznerConfig CRDs for "golden:*" image convention
+# and automatically builds Packer snapshots via K8s Jobs.
+
+# ── Controller ────────────────────────────────────────────────────────────────
+
+controller:
+  image:
+    repository: ghcr.io/mbilan1/hcloud-image-controller
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ── Builder (K8s Job image) ───────────────────────────────────────────────────
+
+builder:
+  image:
+    repository: ghcr.io/mbilan1/hcloud-image-builder
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+# ── Defaults for Packer builds ────────────────────────────────────────────────
+# DECISION: Single source of truth for the controller path.
+# Why: These values flow: Helm values → deployment env → controller Config → Job env → Packer -var.
+#      For standalone Packer builds, defaults live in rke2-base.pkr.hcl instead.
+#      Empty values are omitted from the Job, letting Packer use its own defaults.
+
+defaults:
+  rke2Version: "v1.34.4+rke2r1"
+  location: "hel1"
+  serverType: "cx23"
+  baseImage: ""  # Empty → Packer uses rke2-base.pkr.hcl default (ubuntu-24.04)
+
+# ── Namespaces ────────────────────────────────────────────────────────────────
+
+# Namespace where the controller runs and builder Jobs are created.
+namespace: hcloud-image-system
+
+# Create the namespace via chart template.
+# Set to false when namespace is pre-created (e.g., via cloud-init manifest with PSA labels).
+createNamespace: false
+
+# ── Service Account ───────────────────────────────────────────────────────────
+
+serviceAccount:
+  create: true
+  name: hcloud-image-controller
+  annotations: {}
