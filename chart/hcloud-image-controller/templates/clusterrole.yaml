@@ -23,22 +23,18 @@ rules:
     verbs: ["get", "list", "watch", "update", "patch"]
 
   # Read Cloud Credential Secrets (HCLOUD_TOKEN extraction).
+  # Create/delete temporary credential Secrets for builder Jobs.
   # NOTE: "watch" is required by controller-runtime's cache/informer.
+  # NOTE: Cannot restrict to namespace in ClusterRole rules.
+  # The controller code limits Secret creation to hcloud-image-system namespace.
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "list", "watch"]
+    verbs: ["get", "list", "watch", "create", "delete"]
 
-  # Create and monitor builder Jobs + credential Secrets.
+  # Create and monitor builder Jobs.
   - apiGroups: ["batch"]
     resources: ["jobs"]
     verbs: ["get", "list", "watch", "create", "delete"]
-
-  # Create temporary credential Secrets for builder Jobs.
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["create", "delete"]
-    # NOTE: Cannot restrict to namespace in ClusterRole rules.
-    # The controller code limits Secret creation to hcloud-image-system namespace.
 
   # Leader election requires leases.
   - apiGroups: ["coordination.k8s.io"]

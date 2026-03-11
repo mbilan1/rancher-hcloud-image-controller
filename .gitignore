@@ -4,6 +4,7 @@ hcloud-image-controller
 
 # Go
 vendor/
+coverage.out
 
 # IDE
 .vscode/

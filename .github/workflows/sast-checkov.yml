@@ -1,0 +1,45 @@
+name: "SAST: Checkov"
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checkov-helm:
+    name: Checkov scan (Helm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      - name: Render templates
+        run: |
+          mkdir -p /tmp/rendered
+          helm template test chart/hcloud-image-controller \
+            --namespace hcloud-image-system \
+            --output-dir /tmp/rendered
+      - name: Run Checkov (Kubernetes)
+        uses: bridgecrewio/checkov-action@f9b0a2206b0401cad02ac0a66be2a7934a5be838 # v12.3088.0
+        with:
+          directory: /tmp/rendered
+          framework: kubernetes
+          compact: true
+          quiet: true
+          soft_fail: true
+
+  checkov-dockerfile:
+    name: Checkov scan (Dockerfile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run Checkov (Dockerfile)
+        uses: bridgecrewio/checkov-action@f9b0a2206b0401cad02ac0a66be2a7934a5be838 # v12.3088.0
+        with:
+          file: Dockerfile
+          framework: dockerfile
+          compact: true
+          quiet: true
+          soft_fail: true

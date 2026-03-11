@@ -1,0 +1,23 @@
+name: "SAST: KICS"
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  kics:
+    name: KICS scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run KICS
+        uses: Checkmarx/kics-github-action@05aa5eb70eede1355220f4ca5238d96b397e30a6 # v2.1.20
+        with:
+          path: chart/hcloud-image-controller,Dockerfile
+          type: Helm,Dockerfile
+          fail_on: high
+          output_formats: json

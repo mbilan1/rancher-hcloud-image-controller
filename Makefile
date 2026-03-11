@@ -18,18 +18,20 @@ CHART_DIR := chart/hcloud-image-controller
 .PHONY: build test lint fmt vet tidy \
         docker-build docker-push docker-build-builder docker-push-builder \
         helm-lint helm-template helm-package \
-        clean all
+        lint-go lint-docker lint-helm lint-all \
+        quality-gate clean all
 
 # ── Go ────────────────────────────────────────────────────────────────────────
 
 build:
-	CGO_ENABLED=0 go build -o bin/$(BINARY) .
+	CGO_ENABLED=0 go build -o bin/$(BINARY) ./cmd/controller
 
 test:
 	go test ./... -v -count=1
 
-lint:
-	golangci-lint run ./...
+test-coverage:
+	go test ./... -v -count=1 -coverprofile=coverage.out
+	go tool cover -func=coverage.out
 
 fmt:
 	gofmt -w .
@@ -39,6 +41,51 @@ vet:
 
 tidy:
 	go mod tidy
+
+# ── Go Linters ────────────────────────────────────────────────────────────────
+
+lint:
+	golangci-lint run ./...
+
+lint-go: lint vet
+	@echo "Go linters passed"
+
+# ── Docker Linters ────────────────────────────────────────────────────────────
+# PARANOID: All tools are required. No SKIP — install them or fail.
+
+lint-docker:
+	hadolint Dockerfile
+	trivy config Dockerfile --severity HIGH,CRITICAL --exit-code 1
+	@echo "Docker linters passed (dockle requires built image — run after docker-build)"
+
+# ── Helm Linters ──────────────────────────────────────────────────────────────
+
+helm-lint:
+	helm lint $(CHART_DIR) --strict
+
+helm-template:
+	helm template test $(CHART_DIR) --namespace hcloud-image-system
+
+helm-package:
+	helm package $(CHART_DIR) -d bin/
+
+lint-helm: helm-lint
+	helm template test $(CHART_DIR) --namespace hcloud-image-system | kubeconform -strict -ignore-missing-schemas
+	kube-linter lint $(CHART_DIR)
+	helm template test $(CHART_DIR) --namespace hcloud-image-system | pluto detect -
+
+# ── All Linters ───────────────────────────────────────────────────────────────
+
+lint-all: lint-go lint-docker lint-helm
+	@echo "All linters passed"
+
+# ── Quality Gate (pre-commit) ─────────────────────────────────────────────────
+# Run this before every commit. Catches issues across all 3 layers:
+# Go (tidy, fmt, vet, test, golangci-lint), Docker (hadolint, trivy), Helm (lint, kubeconform, kube-linter, pluto).
+
+quality-gate: tidy fmt vet test lint-all
+	@echo ""
+	@echo "✓ Quality gate passed — safe to commit"
 
 # ── Docker — Controller ──────────────────────────────────────────────────────
 
@@ -58,20 +105,9 @@ docker-build-builder:
 docker-push-builder: docker-build-builder
 	docker push $(BUILDER_IMAGE)
 
-# ── Helm ──────────────────────────────────────────────────────────────────────
-
-helm-lint:
-	helm lint $(CHART_DIR)
-
-helm-template:
-	helm template test $(CHART_DIR) --namespace hcloud-image-system
-
-helm-package:
-	helm package $(CHART_DIR) -d bin/
-
 # ── Convenience ───────────────────────────────────────────────────────────────
 
 all: tidy fmt vet build helm-lint
 
 clean:
-	rm -rf bin/
+	rm -rf bin/ coverage.out

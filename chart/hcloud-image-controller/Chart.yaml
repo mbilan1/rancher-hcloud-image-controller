@@ -22,3 +22,5 @@ sources:
 
 maintainers:
   - name: mbilan1
+
+icon: https://raw.githubusercontent.com/kubernetes/community/master/icons/svg/resources/labeled/c-role.svg
