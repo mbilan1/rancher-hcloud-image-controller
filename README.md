@@ -1,5 +1,10 @@
 # Hcloud Image Controller
 
+[![Quality Gate](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/quality-gate.yml)
+[![Tests](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/unit-test.yml/badge.svg)](https://github.com/mbilan1/rancher-hcloud-image-controller/actions/workflows/unit-test.yml)
+[![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Kubernetes controller that automatically builds Hetzner Cloud hcloud images
 (Packer snapshots) when `HetznerConfig` CRDs use the `golden:*` image convention.
 

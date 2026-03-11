@@ -5,17 +5,16 @@
 #      Bugs cause real cost (orphaned servers, failed provisioning). Every possible
 #      class of defect is checked. No shortcuts.
 
-run:
-  timeout: 5m
+version: "2"
 
 linters:
+  default: none
   enable:
     # ── Correctness ──────────────────────────────────────────────────────────
     - errcheck       # unchecked errors
     - govet          # Go vet checks
-    - staticcheck    # comprehensive static analysis
+    - staticcheck    # comprehensive static analysis (includes gosimple, stylecheck)
     - ineffassign    # useless assignments
-    - typecheck      # type-checking errors
     - unused         # unused code
     - bodyclose      # unclosed HTTP response bodies
     - nilerr         # returning nil error after checking err != nil
@@ -28,8 +27,6 @@ linters:
     - gosec          # security-oriented checks
 
     # ── Style & Consistency ──────────────────────────────────────────────────
-    - gofmt          # formatting
-    - goimports      # import ordering
     - misspell       # typos in comments/strings
     - unconvert      # unnecessary type conversions
     - unparam        # unused function parameters
@@ -53,71 +50,87 @@ linters:
     - errorlint      # proper error wrapping (Go 1.13+)
     - wrapcheck      # errors from external packages must be wrapped
 
-linters-settings:
-  gocyclo:
-    min-complexity: 15   # PARANOID: tighter than default 30
-  nestif:
-    min-complexity: 5    # PARANOID: tighter than default 5
-  funlen:
-    lines: 80            # PARANOID: functions must be short
-    statements: 50
-  lll:
-    line-length: 140     # Reasonable for Go with long struct literals
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-      - style
-      - experimental      # PARANOID: enable experimental checks too
-  revive:
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+    funlen:
+      lines: 80            # PARANOID: functions must be short.
+      statements: 50
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+        - experimental      # PARANOID: enable experimental checks too.
+      disabled-checks:
+        # NOTE: importShadow fires on `log := log.FromContext(ctx)` which is the
+        # canonical controller-runtime pattern. Disabling to avoid false positives.
+        - importShadow
+    gocyclo:
+      min-complexity: 15   # PARANOID: tighter than default 30.
+    lll:
+      line-length: 140     # Reasonable for Go with long struct literals.
+    nestif:
+      min-complexity: 5    # PARANOID: tighter than default 5.
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: error-return
+        - name: error-strings
+        - name: exported
+          disabled: true  # Internal packages only — no public API.
+        - name: increment-decrement
+        - name: var-naming
+        - name: package-comments
+          disabled: true  # Internal packages only.
+        - name: unused-parameter
+        - name: unnecessary-stmt
+        - name: deep-exit
+        - name: early-return
+    gosec:
+      # PARANOID: No exclusions. Every security finding is reviewed.
+      excludes: []
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - .Wrap(
+        - .Wrapf(
+      ignore-package-globs:
+        - github.com/mbilan1/rancher-hcloud-image-controller/*
+        # Framework calls — wrapping adds noise, not value.
+        - sigs.k8s.io/controller-runtime/*
+        - k8s.io/apimachinery/*
+        - net/http
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: error-return
-      - name: error-strings
-      - name: exported
-        disabled: true  # Internal packages only — no public API
-      - name: increment-decrement
-      - name: var-naming
-      - name: package-comments
-        disabled: true  # Internal packages only
-      - name: unused-parameter
-      - name: unnecessary-stmt
-      - name: deep-exit
-      - name: early-return
-  gosec:
-    # PARANOID: No exclusions. Every security finding is reviewed.
-    excludes: []
-  wrapcheck:
-    ignoreSigs:
-      - .Errorf(
-      - errors.New(
-      - errors.Unwrap(
-      - .Wrap(
-      - .Wrapf(
-    ignorePackageGlobs:
-      - github.com/mbilan1/rancher-hcloud-image-controller/*
-      # Framework calls — wrapping adds noise, not value.
-      - sigs.k8s.io/controller-runtime/*
-      - k8s.io/apimachinery/*
-      - net/http
-  exhaustive:
-    default-signifies-exhaustive: true
+      # Test files: relaxed on error handling and style, strict on everything else.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - wrapcheck
+          - unparam
+          - funlen         # Test tables can be long.
+          - lll            # Test assertions can be long.
+          - forcetypeassert
+          - godot
+          - dupword
 
 issues:
-  max-issues-per-linter: 0   # PARANOID: show ALL issues, no limit
-  max-same-issues: 0         # PARANOID: show ALL duplicates
+  max-issues-per-linter: 0   # PARANOID: show ALL issues, no limit.
+  max-same-issues: 0         # PARANOID: show ALL duplicates.
 
-  exclude-rules:
-    # Test files: relaxed on error handling and style, strict on everything else.
-    - path: _test\.go
-      linters:
-        - errcheck
-        - wrapcheck
-        - unparam
-        - funlen         # Test tables can be long
-        - lll            # Test assertions can be long
-        - forcetypeassert
-        - godot
-        - dupword
+formatters:
+  enable:
+    - gofmt
+    - goimports

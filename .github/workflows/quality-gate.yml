@@ -1,0 +1,48 @@
+name: Quality Gate
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gate:
+    name: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install tools
+        run: |
+          # golangci-lint v2
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin v2.11.3
+          # hadolint
+          curl -sL https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 -o /usr/local/bin/hadolint && chmod +x /usr/local/bin/hadolint
+          # trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.62.1
+          # kubeconform
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz -C /usr/local/bin
+          # kube-linter
+          curl -sL https://github.com/stackrox/kube-linter/releases/download/v0.7.2/kube-linter-linux -o /usr/local/bin/kube-linter && chmod +x /usr/local/bin/kube-linter
+          # pluto
+          curl -sL https://github.com/FairwindsOps/pluto/releases/download/v5.21.0/pluto_5.21.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin pluto
+
+      - name: Run quality gate
+        run: make quality-gate
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git diff --name-only)" ]; then
+            echo "::error::Quality gate modified files. Run 'make quality-gate' locally and commit the changes:"
+            git diff --name-only
+            exit 1
+          fi
