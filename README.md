@@ -9,17 +9,62 @@
 [![Hetzner Driver](https://img.shields.io/badge/Hetzner_Driver-v0.9.0-D50C2D)](https://github.com/zsys-studio/rancher-hetzner-cluster-provider)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+Kubernetes controller for Rancher on Hetzner Cloud that resolves symbolic `golden:*` images to project-local snapshot IDs and, when needed, triggers Packer builds to create those snapshots in the target downstream project.
+
 ## Problem
 
-Rancher provisions downstream cluster nodes using Hetzner Cloud snapshots. These snapshots must contain a pre-installed RKE2 distribution matching the cluster's Kubernetes version.
+### How custom images work in Hetzner Cloud
 
-Without this controller, operators must:
-1. Manually build Packer snapshots for each RKE2 version
-2. Look up snapshot IDs in the Hetzner Cloud console
-3. Edit `HetznerConfig` CRDs to hardcode snapshot IDs
-4. Repeat for every version upgrade across every cluster
+In Hetzner Cloud, any non-standard machine image is used as a **snapshot**. In practice, this means that if you want to boot nodes from your own prepared image — for example, an image with RKE2 already installed, additional hardening, or internal corporate baseline packages — the supported mechanism is to create and reference a snapshot.
 
-This controller eliminates all manual steps. Operators write `image: "golden:cis"` once and the controller handles the rest — building, caching, and resolving snapshots automatically.
+At the time of writing, there is no separate custom-image distribution mechanism in Hetzner Cloud beyond snapshots. If a cluster should start from a tailored image instead of a stock image such as `ubuntu-24.04`, that image has to exist as a snapshot in the target Hetzner project.
+
+### Why this becomes an architecture constraint
+
+Hetzner snapshots are project-scoped. A snapshot created in one project is not available in another project or account through the public API. This is important for platforms that intentionally separate environments into multiple downstream Hetzner projects — for example, one project per cluster, per team, or per customer.
+
+Because of that limitation, a golden image built once in the management project cannot simply be reused everywhere else. The same applies to private or company-specific base images, including images prepared for stronger CIS alignment.
+
+### Why golden images matter here
+
+The `packer-hcloud-rke2` pipeline prepares node images with more than just RKE2. It can also bake in CIS-related hardening and the OS-level baseline expected by this platform. This is what makes the `enable_cis_hardening` flow in `terraform-hcloud-rancher` practical for downstream clusters: the operating system state is prepared before the node ever joins the cluster.
+
+Without a project-local snapshot, that prepared baseline cannot be selected in `HetznerConfig`, because custom images in Hetzner are consumed as snapshots.
+
+### What operators would otherwise need to do
+
+Without automation, each downstream project needs its own image build and its own snapshot lifecycle:
+
+1. Run Packer separately in the target downstream project
+2. Wait for the image build and snapshot creation to finish
+3. Find the produced snapshot ID
+4. Insert that numeric ID into the cluster's `HetznerConfig`
+5. Repeat the process for every new RKE2 version, image update, or hardening change
+
+This is manageable for a small number of projects, but it becomes cumbersome once the platform uses a distributed multi-project layout.
+
+## How This Controller Solves the Problem
+
+This controller, together with the [zsys-studio Hetzner Node Driver](https://github.com/zsys-studio/rancher-hetzner-cluster-provider), automates that missing step. It reproduces the Packer flow inside Kubernetes for the **target downstream project** by using the Cloud Credentials already stored in Rancher.
+
+In other words, the controller does not try to reuse or transfer a snapshot from some central project. Instead, it works around the project boundary by creating the required snapshot **directly inside the Hetzner project where the downstream cluster will run**:
+
+1. It detects that the cluster requested a symbolic image such as `golden:cis`
+2. It reads the downstream cluster context and obtains the corresponding Rancher Cloud Credential
+3. It uses that credential to query the Hetzner API **in the target project itself**
+4. If a suitable snapshot already exists there, it reuses it
+5. If not, it starts a builder Job that runs Packer against that same target project
+6. After the snapshot is created, it writes the resulting snapshot ID back into `HetznerConfig`
+
+This is the key idea: the controller solves the cross-project image problem not by moving snapshots between projects, but by **building or resolving the needed snapshot locally in each downstream project** and then handing Rancher the exact numeric image ID it expects.
+
+As a result, operators can declare `image: "golden:cis"` or `image: "golden:base"` in the cluster template, while the controller takes care of building or locating the correct project-local snapshot and replacing the symbolic value with the actual snapshot ID.
+
+### Deployment-time tradeoff
+
+This approach improves operability and makes golden images usable in multi-project Hetzner setups, but it also introduces an expected tradeoff: the **first** deployment of a cluster may take longer when a required golden image is not yet present in that project. In that case, the controller must wait for Packer provisioning, hardening, and snapshot creation before Rancher can continue node provisioning.
+
+Once the snapshot already exists, later clusters can reuse it and start much faster.
 
 ## How It Works
 
